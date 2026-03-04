@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sushi Time - Финал</title>
+    <!-- Исправленная ссылка на шрифты -->
+    <link href="https://fonts.googleapis.com" rel="stylesheet">
+    
+    <style>
+        body {
+            margin: 0; padding: 0; background-color: #000; color: #fff;
+            font-family: 'Roboto', sans-serif; 
+            display: flex; flex-direction: column; align-items: center; 
+        }
+
+        h1 { font-family: 'Revalia', sans-serif; margin-top: 40px; font-size: 3rem; border-bottom: 2px solid white; padding-bottom: 10px; text-align: center; }
+
+        .cart-btn {
+            position: fixed !important; top: 20px !important; right: 20px !important; 
+            background: #e63946 !important; padding: 15px 25px!important; 
+            border-radius: 50px!important; cursor: pointer!important; 
+            z-index: 9999 !important; font-weight: bold!important; 
+            transition: all 0.4s ease!important; 
+            box-shadow: 0 5px 15px rgba(230, 57, 70, 0.4)!important;
+            color: white!important; border: none;
+        }
+
+        .cart-hidden { opacity: 0; pointer-events: none; transform: translateY(-20px); }
+
+        .cart-modal {
+            display: none; position: fixed; top: 50%; left: 50%; 
+            transform: translate(-50%, -50%);
+            background: white; color: #333; padding: 25px; border-radius: 20px; 
+            z-index: 3000; width: 340px; box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .cart-note-label { display: block; margin-top: 15px; font-size: 0.9rem; font-weight: bold; color: #666; }
+        .cart-note-area {
+            width: 100%; height: 80px; margin-top: 5px; padding: 10px;
+            border: 1px solid #ddd; border-radius: 10px; resize: none;
+            font-family: inherit; box-sizing: border-box; font-size: 0.85rem;
+        }
+
+        .menu-container { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-top: 50px; padding: 20px; }
+        
+        .card {
+            background: #fff; color: #333; border-radius: 15px; width: 280px; padding: 15px;
+            cursor: pointer; transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1); position: relative;
+        }
+
+        .card.active { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%) scale(1.1); z-index: 1500; width: 320px; }
+
+        .card img { width: 100%; border-radius: 10px; display: block; }
+        .price { font-weight: bold; color: #e63946; font-size: 1.4rem; margin: 10px 0; }
+        .description { max-height: 0; opacity: 0; overflow: hidden; transition: 0.5s; font-size: 0.85rem; }
+        .card.active .description { max-height: 400px; opacity: 1; margin-top: 10px; }
+
+        .controls { display: flex; align-items: center; justify-content: center; gap: 15px; margin: 15px 0; }
+        .btn-qty { background: #eee; border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; font-size: 1.2rem; }
+        
+        .btn-buy {
+            background: #000; color: #fff; border: none; padding: 12px;
+            border-radius: 25px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 10px;
+        }
+
+        .overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); z-index: 1000;
+        }
+
+        .order-input { width: 100%; padding: 10px; margin: 5px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; }
+        .cart-item { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+    <h1>Sushi Time</h1>
+
+    <div class="cart-btn" id="cartBtn" onclick="showCart()">🛒 Корзина (<span id="cart-count">0</span>)</div>
+    <div class="overlay" id="overlay" onclick="executeClose()"></div>
+
+    <div class="cart-modal" id="cartModal">
+        <h3 style="margin-top:0; color:#333;">Ваш заказ:</h3>
+        <div id="cartList" style="color:#666; max-height: 200px; overflow-y: auto;">Корзина пуста</div>
+        <hr style="border:0; border-top: 1px solid #eee; margin: 15px 0;">
+        <p style="color:#333;">Итого: <b id="totalSum" style="color:#e63946;">0</b> р.</p>
+
+        <label class="cart-note-label">Примечание:</label>
+        <textarea id="order-note" class="cart-note-area" placeholder="Например: без лука..."></textarea>
+
+        <input type="email" class="order-input" id="userEmail" placeholder="Ваша почта">
+        
+        <button class="btn-buy" style="background: #27ae60;" onclick="sendOrder()">ОТПРАВИТЬ ЗАКАЗ</button>
+        <button class="btn-buy" style="background: #555;" onclick="executeClose()">Закрыть</button>
+    </div>
+
+    <div class="menu-container">
+        <!-- КАРТОЧКА 1 -->
+        <div class="card" onclick="openCard(this)">
+            <img src="IMG_2332.jpeg" alt="Sushi">
+            <h3>Набор 8 марта</h3>
+            <div class="price">1699 р.</div>
+            <div class="description">
+                Состав: Лосось терияки, Медовая креветка, Филадельфия Масаго, Филадельфия Лайт, Спринг-ролл с крабом 1098 г.
+                <div class="controls">
+                    <button class="btn-qty" onclick="changeQty(event, 'Набор 8 марта', -1, 1699)">-</button>
+                    <span id="qty-Набор 8 марта">0</span>
+                    <button class="btn-qty" onclick="changeQty(event, 'Набор 8 марта', 1, 1699)">+</button>
+                </div>
+                <button class="btn-buy" onclick="closeFromCard(event)">ГОТОВО</button>
+            </div>
+        </div>
+
+        <!-- КАРТОЧКА 2 -->
+        <div class="card" onclick="openCard(this)">
+            <img src="IMG_3423.jpeg" alt="Sushi">
+            <h3>Зимний сет</h3>
+            <div class="price">829 р.</div>
+            <div class="description">
+                Состав: Калифорния, Спайси шиитаке, Сливочный лосось 646г.
+                <div class="controls">
+                    <button class="btn-qty" onclick="changeQty(event, 'Зимний сет', -1, 829)">-</button>
+                    <span id="qty-Зимний сет">0</span>
+                    <button class="btn-qty" onclick="changeQty(event, 'Зимний сет', 1, 829)">+</button>
+                </div>
+                <button class="btn-buy" onclick="closeFromCard(event)">ГОТОВО</button>
+            </div>
+        </div>
+
+        <!-- КАРТОЧКА 3 -->
+        <div class="card" onclick="openCard(this)">
+            <img src="IMG_3940.jpeg" alt="Sushi">
+            <h3>Дрим Тим</h3>
+            <div class="price">1119 р.</div>
+            <div class="description">
+                Состав: акция, ролл Яки Чикен, ролл Яки Краб, ролл Яки Чиз 590 г
+                <div class="controls">
+                    <button class="btn-qty" onclick="changeQty(event, 'Дрим Тим', -1, 1119)">-</button>
+                    <span id="qty-Дрим Тим">0</span>
+                    <button class="btn-qty" onclick="changeQty(event, 'Дрим Тим', 1, 1119)">+</button>
+                </div>
+                <button class="btn-buy" onclick="closeFromCard(event)">ГОТОВО</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let cart = {};
+
+        function openCard(card) {
+            if (card.classList.contains('active')) return;
+            card.classList.add('active');
+            document.getElementById('overlay').style.display = 'block';
+            document.getElementById('cartBtn').classList.add('cart-hidden');
+        }
+
+        function closeFromCard(event) {
+            event.stopPropagation();
+            executeClose();
+        }
+
+        function executeClose() {
+            document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
+            document.getElementById('overlay').style.display = 'none';
+            document.getElementById('cartModal').style.display = 'none';
+            document.getElementById('cartBtn').classList.remove('cart-hidden');
+        }
+
+        function changeQty(event, name, delta, price) {
+            event.stopPropagation();
+            if (!cart[name]) cart[name] = { price: price, qty: 0 };
+            cart[name].qty += delta;
+            if (cart[name].qty <= 0) {
+                delete cart[name];
+            }
+            updateUI(name);
+        }
+
+        function updateUI(name) {
+            let total = 0, count = 0;
+            const label = document.getElementById(`qty-${name}`);
+            if (label) label.innerText = cart[name] ? cart[name].qty : 0;
+
+            const list = document.getElementById('cartList');
+            list.innerHTML = "";
+            for (let id in cart) {
+                total += cart[id].price * cart[id].qty;
+                count += cart[id].qty;
+                list.innerHTML += `<div class="cart-item"><span>${id}</span><b>${cart[id].qty} шт.</b></div>`;
+            }
+            document.getElementById('cart-count').innerText = count;
+            document.getElementById('totalSum').innerText = total;
+            if (count === 0) list.innerHTML = "Корзина пуста";
+        }
+
+        function showCart() {
+            document.getElementById('cartModal').style.display = 'block';
+            document.getElementById('overlay').style.display = 'block';
+        }
+
+        function sendOrder() {
+           function sendOrder() {
+    // 1. Укажите здесь ВАШУ почту
+    const myEmail = "VASH_EMAIL@MAIL.RU"; 
+
+    // 2. Собираем данные из полей
+    const clientEmail = document.getElementById('userEmail').value;
+    const note = document.getElementById('order-note').value;
+    const total = document.getElementById('totalSum').innerText;
+
+    if (!clientEmail) return alert("me.maryy@icloud.com");
+    if (total === "0") return alert("В корзине пусто!");
+
+    // 3. Формируем текст письма
+    let details = `🍣 НОВЫЙ ЗАКАЗ (Sushi Time):\n\n`;
+    
+    for(let id in cart) {
+        details += `• ${id}: ${cart[id].qty} шт. (${cart[id].price * cart[id].qty} р.)\n`;
+    }
+    
+    details += `\n💰 Итого: ${total} р.`;
+    details += `\n📧 Почта клиента: ${clientEmail}`;
+    
+    // Добавляем примечание в текст письма, если оно не пустое
+    if (note.trim() !== "") {
+        details += `\n\n📝 ПРИМЕЧАНИЕ: ${note}`;
+    }
+
+    // 4. Открываем почтовое приложение клиента с заполненными данными
+    const subject = encodeURIComponent(`Заказ Sushi Time от ${clientEmail}`);
+    const body = encodeURIComponent(details);
+    
+    window.location.href = `mailto:${myEmail}?subject=${subject}&body=${body}`;
+    
+    alert("Заказ сформирован! Нажмите 'Отправить' в открывшемся почтовом окне.");
+    
+    // Очищаем форму
+    executeClose();
+}
+
+        }
+    </script>
+</body>
+</html>
