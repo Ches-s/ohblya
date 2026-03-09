@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sushi Time — Доставка счастья</title>
+    <link href="https://fonts.googleapis.com" rel="stylesheet">
+    <style>
+        :root { --primary: #e63946; --dark: #121212; --card-bg: #ffffff; --text-main: #333; --text-light: #777; }
+        body { margin: 0; padding: 0; background-color: var(--dark); color: #fff; font-family: 'Montserrat', sans-serif; display: flex; flex-direction: column; align-items: center; }
+        
+        header { width: 100%; text-align: center; padding: 30px 0 15px; background: linear-gradient(to bottom, #1a1a1a, var(--dark)); }
+        h1 { font-family: 'Revalia', sans-serif; font-size: 2.5rem; margin: 0; }
+        .subtitle { color: var(--primary); font-weight: bold; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 2px; }
+
+        /* ВЕРХНЯЯ ПАНЕЛЬ */
+        .sticky-nav {
+            position: sticky; top: 0; z-index: 1000;
+            width: 100%; background: rgba(18, 18, 18, 0.95);
+            backdrop-filter: blur(10px);
+            display: flex; justify-content: center; padding: 10px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .nav-container { width: 92%; max-width: 1200px; display: flex; justify-content: space-between; align-items: center; }
+        .nav-tabs { display: flex; gap: 8px; }
+        .tab-btn { background: rgba(255,255,255,0.1); color: #fff; border: none; padding: 8px 16px; border-radius: 50px; cursor: pointer; font-weight: bold; font-size: 0.85rem; }
+        .tab-btn.active { background: var(--primary); }
+
+        /* КОРЗИНА (Адаптивная) */
+        .cart-trigger { 
+            background: var(--primary); color: white; border: none; padding: 10px 18px; 
+            border-radius: 50px; font-weight: bold; cursor: pointer; font-size: 0.85rem;
+            display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 15px rgba(230, 57, 70, 0.3);
+        }
+
+        /* СЕТКА ТОВАРОВ */
+        .menu-section { display: none; width: 100%; max-width: 1200px; padding-top: 10px; }
+        .menu-section.active { display: block; animation: fadeIn 0.4s ease; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; padding: 15px; justify-items: center; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .product-card { background: var(--card-bg); color: var(--text-main); width: 100%; max-width: 300px; border-radius: 18px; overflow: hidden; position: relative; box-shadow: 0 8px 16px rgba(0,0,0,0.3); }
+        .img-wrapper { width: 100%; height: 200px; overflow: hidden; }
+        .product-card img { width: 100%; height: 100%; object-fit: cover; }
+        .content { padding: 15px; }
+        .price { font-size: 1.3rem; font-weight: 700; color: #000; }
+        .action-box { display: flex; align-items: center; height: 40px; }
+        .buy-btn { background: var(--primary); color: #fff; border: none; padding: 8px 16px; border-radius: 10px; font-weight: bold; cursor: pointer; }
+        .qty-controls { display: none; align-items: center; gap: 10px; background: #f4f4f4; border-radius: 10px; padding: 4px; }
+        .qty-controls.active { display: flex; }
+        .qty-btn { width: 30px; height: 30px; border: none; border-radius: 6px; background: #fff; color: var(--primary); font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+        /* МОДАЛКА */
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1100; backdrop-filter: blur(4px); }
+        .cart-modal { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); background: #fff; color: #333; width: 100%; max-width: 450px; padding: 20px; border-radius: 20px 20px 0 0; z-index: 1200; display: none; box-sizing: border-box; }
+        @media (min-width: 600px) { .cart-modal { bottom: auto; top: 50%; transform: translate(-50%, -50%); border-radius: 25px; } }
+        
+        .order-input { width: 100%; padding: 12px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-family: inherit; font-size: 14px; }
+        .send-btn { width: 100%; background: #27ae60; color: #fff; border: none; padding: 14px; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 1rem; }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>SUSHI TIME</h1>
+    <div class="subtitle">Premium Delivery Service</div>
+</header>
+
+<div class="sticky-nav">
+    <div class="nav-container">
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="switchTab('sets', this)">Наборы</button>
+            <button class="tab-btn" onclick="switchTab('rolls', this)">Роллы</button>
+        </div>
+        <button class="cart-trigger" onclick="toggleCart(true)">
+            🛒 <span id="cart-total-nav">0</span>₽
+        </button>
+    </div>
+</div>
+
+<!-- НАБОРЫ -->
+<section id="sets" class="menu-section active">
+    <div class="grid">
+        <div class="product-card">
+            <div class="img-wrapper"><img src="IMG_2332.jpeg"></div>
+            <div class="content"><h3>Набор 8 марта</h3><div class="bottom-row"><div class="price">1699<span>₽</span></div><div class="action-box">
+                <button class="buy-btn" id="buy-8march" onclick="addToCart('Набор 8 марта', 1699, '8march')">В корзину</button>
+                <div class="qty-controls" id="qty-box-8march"><button class="qty-btn" onclick="updateQty('8march', -1)">-</button><span class="qty-num" id="num-8march">1</span><button class="qty-btn" onclick="updateQty('8march', 1)">+</button></div>
+            </div></div></div>
+        </div>
+        <div class="product-card">
+            <div class="img-wrapper"><img src="IMG_3423.jpeg"></div>
+            <div class="content"><h3>Зимний сет</h3><div class="bottom-row"><div class="price">829<span>₽</span></div><div class="action-box">
+                <button class="buy-btn" id="buy-winter" onclick="addToCart('Зимний сет', 829, 'winter')">В корзину</button>
+                <div class="qty-controls" id="qty-box-winter"><button class="qty-btn" onclick="updateQty('winter', -1)">-</button><span class="qty-num" id="num-winter">1</span><button class="qty-btn" onclick="updateQty('winter', 1)">+</button></div>
+            </div></div></div>
+        </div>
+        <div class="product-card">
+            <div class="img-wrapper"><img src="IMG_3940.jpeg"></div>
+            <div class="content"><h3>Дрим Тим</h3><div class="bottom-row"><div class="price">1119<span>₽</span></div><div class="action-box">
+                <button class="buy-btn" id="buy-dream" onclick="addToCart('Дрим Тим', 1119, 'dream')">В корзину</button>
+                <div class="qty-controls" id="qty-box-dream"><button class="qty-btn" onclick="updateQty('dream', -1)">-</button><span class="qty-num" id="num-dream">1</span><button class="qty-btn" onclick="updateQty('dream', 1)">+</button></div>
+            </div></div></div>
+        </div>
+    </div>
+</section>
+
+<!-- РОЛЛЫ -->
+<section id="rolls" class="menu-section">
+    <div class="grid">
+        <div class="product-card">
+            <div class="img-wrapper"><img src="фила.jpeg"></div>
+            <div class="content"><h3>Филадельфия</h3><div class="bottom-row"><div class="price">800<span>₽</span></div><div class="action-box">
+                <button class="buy-btn" id="buy-phila" onclick="addToCart('Филадельфия', 800, 'phila')">В корзину</button>
+                <div class="qty-controls" id="qty-box-phila"><button class="qty-btn" onclick="updateQty('phila', -1)">-</button><span class="qty-num" id="num-phila">1</span><button class="qty-btn" onclick="updateQty('phila', 1)">+</button></div>
+            </div></div></div>
+        </div>
+    </div>
+</section>
+
+<div class="modal-overlay" id="overlay" onclick="toggleCart(false)"></div>
+<div class="cart-modal" id="modal">
+    <h2 style="margin:0 0 15px 0; font-size: 1.2rem;">Ваш заказ</h2>
+    <div id="cart-items-list" style="margin-bottom:15px; max-height:180px; overflow-y:auto;"></div>
+    
+    <div style="display:flex; justify-content:space-between; align-items:center; background:#f8f8f8; padding:10px; border-radius:10px; margin-bottom:10px; font-size: 0.9rem;">
+        <span>🥢 Количество персон:</span>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <button class="qty-btn" onclick="updateSticks(-1)" style="width:24px; height:24px;">-</button>
+            <span id="sticks-count" style="font-weight:bold;">1</span>
+            <button class="qty-btn" onclick="updateSticks(1)" style="width:24px; height:24px;">+</button>
+        </div>
+    </div>
+
+    <div style="font-weight:bold; margin-bottom:15px; font-size:1.1rem; text-align: right;">Итого: <span id="total-price">0</span> ₽</div>
+    
+    <input type="text" class="order-input" id="userName" placeholder="Ваше имя">
+    <input type="email" class="order-input" id="userEmail" placeholder="Ваша почта">
+    <textarea class="order-input" id="orderNote" placeholder="Адрес доставка" style="height:50px; resize:none;"></textarea>
+    
+    <button class="send-btn" onclick="finishOrder()">ОФОРМИТЬ ЗАКАЗ</button>
+</div>
+
+<script>
+    let cart = {};
+    let sticksCount = 1;
+
+    function switchTab(id, btn) {
+        document.querySelectorAll('.menu-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        btn.classList.add('active');
+    }
+
+    function addToCart(name, price, id) {
+        cart[id] = { name, price, qty: 1 };
+        document.getElementById('buy-' + id).style.display = 'none';
+        document.getElementById('qty-box-' + id).classList.add('active');
+        document.getElementById('num-' + id).innerText = 1;
+        updateGlobalUI();
+    }
+
+    function updateQty(id, delta) {
+        if (!cart[id]) return;
+        cart[id].qty += delta;
+        if (cart[id].qty <= 0) {
+            delete cart[id];
+            if(document.getElementById('buy-' + id)) {
+                document.getElementById('buy-' + id).style.display = 'block';
+                document.getElementById('qty-box-' + id).classList.remove('active');
+            }
+        } else {
+            if(document.getElementById('num-' + id)) {
+                document.getElementById('num-' + id).innerText = cart[id].qty;
+            }
+        }
+        updateGlobalUI();
+    }
+
+    function updateSticks(delta) {
+        sticksCount = Math.max(1, sticksCount + delta);
+        document.getElementById('sticks-count').innerText = sticksCount;
+    }
+
+    function updateGlobalUI() {
+        let count = 0, total = 0, listHTML = "";
+        for (let key in cart) {
+            count += cart[key].qty;
+            total += cart[key].price * cart[key].qty;
+            listHTML += `
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; border-bottom:1px solid #eee; padding-bottom:5px;">
+                    <span style="font-size:0.85rem; flex:1;">${cart[key].name}</span>
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <button class="qty-btn" onclick="updateQty('${key}', -1)" style="width:22px; height:22px;">-</button>
+                        <span style="font-size:0.9rem; font-weight:bold;">${cart[key].qty}</span>
+                        <button class="qty-btn" onclick="updateQty('${key}', 1)" style="width:22px; height:22px;">+</button>
+                    </div>
+                </div>`;
+        }
+        document.getElementById('cart-total-nav').innerText = total;
+        document.getElementById('total-price').innerText = total;
+        document.getElementById('cart-items-list').innerHTML = count > 0 ? listHTML : "<p style='text-align:center; color:#999;'>Корзина пуста</p>";
+    }
+
+    function toggleCart(show) {
+        document.getElementById('overlay').style.display = show ? 'block' : 'none';
+        document.getElementById('modal').style.display = show ? 'block' : 'none';
+    }
+
+    async function finishOrder() {
+        const name = document.getElementById('userName').value;
+        const email = document.getElementById('userEmail').value;
+        const total = document.getElementById('total-price').innerText;
+        if (!name || !email || total === "0") return alert("Заполните данные!");
+        let summary = "";
+        for (let key in cart) { summary += `${cart[key].name} x${cart[key].qty}; `; }
+
+        const formspreeUrl = "https://formspree.io/f/mkoqwwbr"
+
+        try {
+            const response = await fetch(formspreeUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, email, order: summary, sticks: sticksCount, total: total + "р.", note: document.getElementById('orderNote').value })
+            });
+            if (response.ok) { alert("Заказ отправлен!"); location.reload(); }
+            else { alert("Ошибка отправки."); }
+        } catch (e) { alert("Ошибка сети."); }
+    }
+</script>
+</body>
+</html>
